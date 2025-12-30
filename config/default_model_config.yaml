@@ -1,0 +1,31 @@
+# Model Configuration
+# Model parameters sent to the OpenAI-compatible API
+
+# API Connection
+api_base_url: "https://api.openai.com/v1"
+api_key: null  # Required: Set your API key
+model: "gpt-4o"  # gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1-preview, o1-mini
+
+# Sampling
+temperature: 0.7  # 0.0-2.0, controls randomness
+top_p: 1.0  # 0.0-1.0, nucleus sampling
+
+# Length Control
+max_tokens: null  # Maximum total tokens (prompt + completion)
+max_completion_tokens: null  # Maximum completion tokens only
+
+# Repetition Control
+frequency_penalty: 0.0  # -2.0 to 2.0, reduces word repetition
+presence_penalty: 0.0  # -2.0 to 2.0, encourages topic diversity
+
+# Generation Control
+n: 1  # Number of completions to generate
+stop: null  # Stop sequences: string or list of strings
+stream: false  # Streaming mode (use ChatAgent.chat_stream())
+
+# Advanced Features
+logprobs: null  # Return log probabilities
+top_logprobs: null  # Number of top alternative tokens (requires logprobs=true)
+seed: null  # Random seed for reproducibility
+user: null  # User identifier for tracking
+reasoning_effort: null  # For o1 models: "low", "medium", "high"
