@@ -28,12 +28,12 @@ from datetime import datetime
 # 添加父目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# 以 package 方式导入，避免相对导入错误
-from openai_chatapi.chat_agent import ChatAgent
-from openai_chatapi.model_config import ModelConfig
-from openai_chatapi.runtime_config import RuntimeConfig
-from openai_chatapi.exceptions import APIConnectionError, APIResponseError, ConfigurationError
-from openai_chatapi.schema import ChatMessage, Tool
+# 使用绝对导入
+from chat_agent import ChatAgent
+from model_config import ModelConfig
+from runtime_config import RuntimeConfig
+from exceptions import APIConnectionError, APIResponseError, ConfigurationError
+from schema import ChatMessage, Tool
 
 
 # ============================================================
@@ -440,7 +440,7 @@ async def test_multimodal_mock(results: TestResults):
         agent = ChatAgent(ModelConfig(api_key="test-key-mock", model="gpt-4o"))
         
         # 测试创建多模态消息
-        from openai_chatapi.utils.media_utils import create_user_message
+        from utils.media_utils import create_user_message
         
         # 文本消息
         msg = create_user_message("测试文本")
@@ -474,18 +474,18 @@ async def test_error_handling(results: TestResults):
     
     try:
         # 测试配置错误
-        from openai_chatapi.exceptions import ConfigurationError
+        from exceptions import ConfigurationError
         assert issubclass(ConfigurationError, Exception)
         results.add_result("ConfigurationError 定义", "PASS")
         
         # 测试 API 错误
-        from openai_chatapi.exceptions import APIConnectionError, APIResponseError
+        from exceptions import APIConnectionError, APIResponseError
         assert issubclass(APIConnectionError, Exception)
         assert issubclass(APIResponseError, Exception)
         results.add_result("API 异常类定义", "PASS")
         
         # 测试工具执行错误
-        from openai_chatapi.exceptions import ToolExecutionError
+        from exceptions import ToolExecutionError
         assert issubclass(ToolExecutionError, Exception)
         results.add_result("ToolExecutionError 定义", "PASS")
         
@@ -500,7 +500,7 @@ async def test_schema_validation(results: TestResults):
     print("=" * 70)
     
     try:
-        from openai_chatapi.schema import ChatMessage, Tool, ToolCall, FunctionCall
+        from schema import ChatMessage, Tool, ToolCall, FunctionCall
         
         # 测试 ChatMessage
         msg = ChatMessage(role="user", content="测试")

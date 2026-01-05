@@ -49,8 +49,8 @@ def load_config_from_yaml(
         ... )
     """
     # Import here to avoid circular import
-    from ..model_config import ModelConfig
-    from ..runtime_config import RuntimeConfig
+    from model_config import ModelConfig
+    from runtime_config import RuntimeConfig
     
     # Use default paths if not specified
     if model_config_path is None:

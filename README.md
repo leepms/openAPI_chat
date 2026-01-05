@@ -1,348 +1,204 @@
-# OpenAI-compatible Chat client (concise reference)
+# OpenAI-Compatible Chat API Client
 
-This package provides a compact, asyncio-based OpenAI-compatible chat client with three core features:
+一个轻量、功能完整的 OpenAI 兼容 API 客户端，基于 Python asyncio 实现。
 
-- Text chat (non-streaming and streaming)
-- Multimodal inputs (image and video)
-- Tool/function calling with optional automatic execution
+## 📝 版本更新 (2026-01-05)
 
-Quick usage (minimal):
+**v0.4.0 - 示例重构与文档优化**
 
-1) Install dependency:
+### 主要变更
+1. **示例代码重构** - 合并冗余示例，新增 4 个清晰的功能演示脚本
+   - `example_1_basics.py` - 基础对话、多轮对话、多模态输入、回调函数
+   - `example_2_streaming.py` - 流式输出的 4 种使用方式
+   - `example_3_tool_calling.py` - 工具调用（非流式+流式）完整演示
+   - `example_4_config_management.py` - 配置管理、HTTP 捕捉、Token 统计、调试模式
 
-```powershell
-pip install httpx
+2. **文档清理** - 删除冗余文档，保留核心技术文档
+   - 删除：`QUICKSTART.md`, `REFACTORING_REPORT.md`, `docs/CHANGELOG_v0.3.md` 等 7 个文件
+   - 保留：`docs/CALLBACK_GUIDE.md`, `docs/STREAMING_TOOL_CALL_FIX.md` 等核心文档
+
+3. **测试优化** - 修复导入路径，增加流式工具调用测试用例
+   - 修复所有测试文件的模块导入（从相对导入改为绝对导入）
+   - 新增 `test_stream_tool_execution()` 测试流式工具调用的参数拼接逻辑
+---
+
+## 🚀 核心特性
+
+- ✅ **流式/非流式对话** - 支持实时响应输出
+- 🎨 **多模态输入** - 图片、视频内容理解
+- 🛠️ **工具调用** - Function Calling 自动执行
+- 📊 **监控统计** - Token 使用、延迟、HTTP 捕捉
+- ⚙️ **灵活配置** - YAML 文件 + 代码覆盖
+
+## 📦 安装
+
+```bash
+pip install httpx pyyaml
 ```
 
-2) Basic text chat example:
+## 🏗️ 项目结构
+
+### 核心代码
+
+```
+openai_chatapi/
+├── chat_agent.py        # ChatAgent 主类 - 对话管理、流式处理、工具调用
+├── model_config.py      # ModelConfig - 模型参数配置 (temperature, max_tokens 等)
+├── runtime_config.py    # RuntimeConfig - 运行时配置 (日志、监控、HTTP 捕捉)
+│                        # UsageStats - Token 统计和延迟跟踪
+├── schema.py            # 数据模型 - ChatMessage, Tool, ChatCompletionResponse 等
+├── exceptions.py        # 异常类 - API 错误、工具执行错误等
+├── model_manager.py     # 模型管理 - 模型列表、能力查询、推荐
+├── utils/
+│   ├── media_utils.py   # 媒体处理 - 图片/视频编码
+│   └── config_loader.py # 配置加载 - YAML 解析
+└── tools/
+    ├── tool_loader.py   # 工具加载器
+    └── fake_tool.py     # 示例工具
+```
+
+### 核心类说明
+
+#### **ChatAgent** (`chat_agent.py`)
+对话代理主类，提供完整的对话能力：
+- `chat(text, image_paths, video_paths)` - 非流式对话
+- `chat_stream(text, ...)` - 流式对话，yield 响应片段
+- `register_tool(tool, handler)` - 注册工具函数
+- `set_system_prompt(prompt)` - 设置系统提示词
+- 自动处理工具调用：检测 → 执行 → 获取最终回复
+- 支持多轮对话历史管理
+
+#### **ModelConfig** (`model_config.py`)
+模型行为配置：
+- API 连接：`api_base_url`, `api_key`, `model`
+- 采样参数：`temperature`, `top_p`, `frequency_penalty`
+- 长度控制：`max_tokens`, `max_completion_tokens`
+- 其他：`n`, `stop`, `seed`, `reasoning_effort`
+
+#### **RuntimeConfig** (`runtime_config.py`)
+运行时行为配置：
+- **日志系统**：`log_level`, `save_logs_to_file`
+- **HTTP 捕捉**：`capture_http_traffic`, `log_http_requests/responses`
+- **统计监控**：`capture_token_usage`, `capture_latency`
+- **调试模式**：`enable_debug`, `debug_save_requests/responses`
+- **回调接口**：`response_callback`, `stream_chunk_callback`
+- **终端控制**：`display_stream_output`
+
+#### **UsageStats** (`runtime_config.py`)
+统计信息跟踪：
+- Token 使用量（prompt + completion）
+- 请求延迟和平均值
+- 成功率和错误计数
+
+## 💡 快速开始
 
 ```python
 import asyncio
-from openai_chatapi import ChatAgent, ModelConfig, RuntimeConfig
+from chat_agent import ChatAgent
+from model_config import ModelConfig
+from runtime_config import RuntimeConfig
 
 async def main():
-    cfg = ModelConfig(api_base_url="https://your.api", api_key="sk-...", model="gpt-3.5-turbo")
-    rt = RuntimeConfig(enable_logging=True)
-    async with ChatAgent(cfg, rt) as agent:
-        resp = await agent.chat("Hello")
-        print(resp)
+    # 配置
+    model_cfg = ModelConfig(
+        api_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_key="your-api-key",
+        model="qwen-plus",
+        temperature=0.7
+    )
+    
+    runtime_cfg = RuntimeConfig(
+        enable_logging=True,
+        capture_token_usage=True
+    )
+    
+    # 使用
+    async with ChatAgent(model_cfg, runtime_cfg) as agent:
+        # 非流式
+        response = await agent.chat("你好")
+        print(response)
+        
+        # 流式
+        async for chunk in agent.chat_stream("讲个笑话"):
+            print(chunk, end='', flush=True)
 
 asyncio.run(main())
 ```
 
-3) Streaming example:
+**更多用法示例：**
+- 工具调用、多模态输入 → 见 `examples/example_1_basics.py` 和 `example_3_tool_calling.py`
+- HTTP 捕捉、Token 统计 → 见 `examples/example_4_config_management.py`
 
-```python
-# use `agent.chat_stream(...)` with `async for chunk in agent.chat_stream(...)` to receive chunks
+## 📚 示例脚本
+
+`examples/` 目录包含 4 个完整示例：
+
+### **example_1_basics.py** - 基础用法
+- 功能 1: 单轮对话 + response_callback
+- 功能 2: 多轮对话 + 历史记忆
+- 功能 3: 多模态（图片分析）
+- 功能 4: 自定义回调收集器
+
+### **example_2_streaming.py** - 流式输出
+- 示例 1: 自动显示流式输出
+- 示例 2: 手动处理每个 chunk
+- 示例 3: 回调函数处理（含工具调用说明）
+- 示例 4: 禁用终端显示
+
+### **example_3_tool_calling.py** - 工具调用
+- 示例 1-2: 非流式工具调用（单工具 + 多工具）
+- 示例 3: 流式工具调用
+- 示例 4: 流式 + 禁用终端显示
+- 示例 5: 自定义 chunk 处理器
+
+### **example_4_config_management.py** - 配置与监控
+- 示例 1: YAML 配置文件加载
+- 示例 2: HTTP 报文捕捉（请求/响应详情）
+- 示例 3: Token 使用统计（数量、延迟）
+- 示例 4: 调试模式（保存 JSON 到文件）
+- 示例 5: 回调函数配置
+- 示例 6: 混合配置（YAML + 代码覆盖）
+
+## 📖 配置参考
+
+### ModelConfig 主要参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `api_base_url` | str | openai.com/v1 | API 端点 |
+| `api_key` | str | None | API 密钥 |
+| `model` | str | "gpt-4o" | 模型名称 |
+| `temperature` | float | 0.7 | 随机性 (0-2) |
+| `max_tokens` | int | None | 最大输出长度 |
+| `top_p` | float | 1.0 | 核采样 |
+| `frequency_penalty` | float | 0.0 | 频率惩罚 |
+
+### RuntimeConfig 主要参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `log_level` | str | "INFO" | 日志级别 |
+| `capture_http_traffic` | bool | False | HTTP 捕捉开关 |
+| `capture_token_usage` | bool | True | Token 统计 |
+| `capture_latency` | bool | True | 延迟统计 |
+| `enable_debug` | bool | False | 调试模式 |
+| `display_stream_output` | bool | True | 终端流式输出 |
+| `response_callback` | Callable | None | 完整响应回调 |
+| `stream_chunk_callback` | Callable | None | 流式 chunk 回调 |
+| `max_tool_iterations` | int | 5 | 最大工具迭代次数 |
+
+**完整参数说明：**参见示例脚本 `examples/example_4_config_management.py`
+
+## 🧪 测试
+
+```bash
+# 运行所有测试
+python test/test_chat_agent.py
+
+# 测试真实 API
+python test/test_real_api.py
 ```
-
-4) Multimodal example:
-
-```python
-# pass image paths: image_paths="photo.jpg" or image_paths=["a.jpg","b.jpg"]
-# pass video path: video_paths="video.mp4"
-```
-
-Examples (in `openai_chatapi/examples`):
-- `example_1_basic_chat.py` — basic text chat
-- `example_3_streaming.py` — streaming usage
-- `example_4_multimodal.py` — image/video examples
-
-That is all — this README contains only concise usage instructions and links to a few examples.
-) -> str
-```
-
-**chat_stream()** - 流式对话
-```python
-async def chat_stream(
-    text: str,
-    image_paths: Union[str, List[str], None] = None,
-    video_paths: Union[str, List[str], None] = None,
-    add_to_history: bool = True,
-    display_stream: bool = True,
-    **kwargs
-) -> AsyncGenerator[str, None]
-```
-
-**工具管理**
-```python
-register_tool(tool: Tool, handler: Callable) -> None
-clear_tools() -> None
-```
-
-**消息管理**
-```python
-set_system_prompt(prompt: str) -> None
-add_message(message: ChatMessage) -> None
-clear_history(keep_system: bool = True) -> None
-```
-
-**统计信息**
-```python
-get_stats() -> dict
-reset_stats() -> None
-```
-
----
-
-### ModelConfig
-
-模型行为配置。
-
-```python
-@dataclass
-class ModelConfig:
-    # API连接
-    api_base_url: str = "https://api.openai.com/v1"
-    api_key: Optional[str] = None
-    model: str = "gpt-4o"
-    
-    # 采样参数
-    temperature: float = 0.7
-    top_p: float = 1.0
-    
-    # 长度控制
-    max_tokens: Optional[int] = None
-    max_completion_tokens: Optional[int] = None
-    
-    # 惩罚
-    frequency_penalty: float = 0.0
-    presence_penalty: float = 0.0
-    
-    # 其他
-    n: int = 1
-    stop: Optional[Union[str, List[str]]] = None
-    stream: bool = False
-    logprobs: Optional[bool] = None
-    top_logprobs: Optional[int] = None
-    seed: Optional[int] = None
-    user: Optional[str] = None
-    reasoning_effort: Optional[str] = None  # "low", "medium", "high"
-```
-
----
-
-### RuntimeConfig
-
-运行时行为配置。
-
-```python
-@dataclass
-class RuntimeConfig:
-    # 日志
-    enable_logging: bool = True
-    log_level: str = "INFO"
-    log_http_requests: bool = False
-    log_http_responses: bool = False
-    
-    # 监控
-    enable_debug: bool = False
-    capture_token_usage: bool = True
-    capture_latency: bool = True
-    
-    # HTTP
-    timeout: int = 60
-    verify_ssl: bool = True
-    max_retries: int = 0
-    retry_delay: float = 1.0
-    
-    # 流式
-    stream_chunk_callback: Optional[Callable[[str], None]] = None
-    stream_enable_progress: bool = False
-    
-    # 解析
-    strict_parsing: bool = False
-    truncate_long_errors: bool = True
-    max_error_length: int = 500
-```
-
----
-
-### 异常类型
-
-所有异常继承自 `ChatAPIException`：
-
-- **ConfigurationError** - 配置验证错误
-- **APIConnectionError** - API 连接错误
-- **APIResponseError** - API 响应解析错误
-- **ToolExecutionError** - 工具执行错误
-- **MediaProcessingError** - 媒体处理错误
-- **ModelNotFoundError** - 模型未找到
-- **TokenLimitError** - Token 限制超出
-
-每个异常都包含 `message` 和 `details` 字典。
-
----
-
-## 🎯 使用场景
-
-### 场景1：生产环境部署
-
-```python
-# 完整的错误处理和监控
-runtime_config = RuntimeConfig(
-    enable_logging=True,
-    log_level="WARNING",
-    capture_token_usage=True,
-    capture_latency=True,
-    max_retries=3,
-    timeout=30,
-)
-
-try:
-    async with ChatAgent(model_config, runtime_config) as agent:
-        response = await agent.chat(user_input)
-        
-        # 记录统计
-        stats = agent.get_stats()
-        logging.info(f"Request completed, tokens: {stats['total_tokens']}")
-        
-except ChatAPIException as e:
-    logging.error(f"Chat failed: {e}")
-    # 错误恢复逻辑
-```
-
-### 场景2：开发调试
-
-```python
-# 详细日志和调试信息
-runtime_config = RuntimeConfig(
-    enable_logging=True,
-    log_level="DEBUG",
-    log_http_requests=True,
-    log_http_responses=True,
-    enable_debug=True,
-    verify_ssl=False,  # 本地测试
-)
-
-async with ChatAgent(model_config, runtime_config) as agent:
-    # 所有请求/响应都会被详细记录
-    response = await agent.chat("test")
-```
-
-### 场景3：流式前端展示
-
-```python
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-
-app = FastAPI()
-
-@app.get("/chat")
-async def chat_endpoint(text: str):
-    async def generate():
-        async with ChatAgent(model_config) as agent:
-            async for chunk in agent.chat_stream(text, display_stream=False):
-                yield f"data: {chunk}\n\n"
-    
-    return StreamingResponse(generate(), media_type="text/event-stream")
-```
-
----
-
-## 📝 更新日志
-
-### v0.3.0 (当前版本)
-
-**新功能:**
-- ✅ 视频输入支持
-- ✅ 分离的配置系统（ModelConfig + RuntimeConfig）
-- ✅ 完善的异常处理体系（8种异常类型）
-- ✅ Token使用统计和延迟追踪
-- ✅ 流式响应实时显示
-- ✅ HTTP 请求/响应日志
-- ✅ 调试模式
-
-**改进:**
-- ✅ 更好的错误诊断信息
-- ✅ 自动截断长错误消息
-- ✅ 向后兼容旧 API（ChatConfig）
-
-**破坏性变更:**
-- `ChatConfig` 改名为 `ModelConfig`（保留别名兼容）
-- `ChatAgent.__init__` 现在接受两个配置参数
-
-### v0.2.0
-
-- 工具调用支持
-- 模型管理模块
-- 完整的 OpenAI 参数支持
-
-### v0.1.0
-
-- 基础文本对话
-- 图像输入支持
-- 流式响应
-
----
 
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
-
-## 📄 许可
-
-MIT License
-
----
-
-## 🔗 相关链接
-
-- [OpenAI API 文档](https://platform.openai.com/docs/api-reference)
-- [httpx 文档](https://www.python-httpx.org/)
-
----
-
-## ❓ 常见问题
-
-**Q: 如何使用本地模型服务（如 Ollama）？**
-
-A: 只需修改 `api_base_url`：
-```python
-model_config = ModelConfig(
-    api_base_url="http://localhost:11434/v1",
-    api_key="not-needed",  # Ollama 不需要 key
-    model="llama2",
-)
-```
-
-**Q: 如何处理自签名 SSL 证书？**
-
-A: 在 RuntimeConfig 中关闭验证：
-```python
-runtime_config = RuntimeConfig(verify_ssl=False)
-```
-
-**Q: 流式输出不显示怎么办？**
-
-A: 确保启用了进度显示：
-```python
-runtime_config = RuntimeConfig(stream_enable_progress=True)
-async for chunk in agent.chat_stream(text, display_stream=True):
-    pass
-```
-
-**Q: 如何追踪 Token 使用量？**
-
-A: 启用统计追踪：
-```python
-runtime_config = RuntimeConfig(capture_token_usage=True)
-# ... 使用 agent ...
-stats = agent.get_stats()
-print(stats)
-```
-
-**Q: 支持哪些视频格式？**
-
-A: 支持常见格式：mp4, webm, ogg, mov, avi。视频会被 Base64 编码后发送，注意大小限制。
-
-**Q: 工具调用失败怎么办？**
-
-A: 捕获 `ToolExecutionError` 查看详情：
-```python
-try:
-    response = await agent.chat("...", auto_execute_tools=True)
-except ToolExecutionError as e:
-    print(f"Tool failed: {e.details['tool']}")
-    print(f"Error: {e.details['error']}")
-```

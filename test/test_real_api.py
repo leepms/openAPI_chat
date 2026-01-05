@@ -27,11 +27,11 @@ from datetime import datetime
 # 添加父目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# 使用包导入以避免相对导入错误
-from openai_chatapi.chat_agent import ChatAgent
-from openai_chatapi.model_config import ModelConfig
-from openai_chatapi.runtime_config import RuntimeConfig
-from openai_chatapi.exceptions import APIConnectionError, APIResponseError
+# 使用绝对导入
+from chat_agent import ChatAgent
+from model_config import ModelConfig
+from runtime_config import RuntimeConfig
+from exceptions import APIConnectionError, APIResponseError
 
 
 # ============================================================
@@ -198,8 +198,8 @@ async def test_4_tool_calling(test_config: TestConfig):
             with open(tool_json_path, 'r', encoding='utf-8') as f:
                 tools_data = json.load(f)
 
-            from openai_chatapi.schema import Tool, FunctionDefinition
-            from openai_chatapi.tools.fake_tool import get_tool_function
+            from schema import Tool, FunctionDefinition
+            from tools.fake_tool import get_tool_function
             for tool_data in tools_data:
                 func = tool_data.get("function")
                 if isinstance(func, dict):

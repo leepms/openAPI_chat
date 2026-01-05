@@ -61,17 +61,27 @@ class RuntimeConfig:
     verify_ssl: bool = True  # SSL certificate verification
     max_retries: int = 0  # Number of retries on failure
     retry_delay: float = 1.0  # Delay between retries in seconds
+    # Maximum iterations to perform automatic tool/function calls
+    max_tool_iterations: int = 5
     
     # ==================== Streaming Configuration ====================
     
     stream_chunk_callback: Optional[Callable[[str], None]] = None  # Callback for each chunk
     stream_enable_progress: bool = False  # Show progress indicators
+    display_stream_output: bool = True  # Print stream chunks to terminal
+    
+    # ==================== Response Callbacks ====================
+    
+    response_callback: Optional[Callable[[str], None]] = None  # Callback for complete response (non-streaming)
     
     # ==================== Response Parsing ====================
     
     strict_parsing: bool = False  # Strict JSON parsing (fail on invalid)
     truncate_long_errors: bool = True  # Truncate long error messages
     max_error_length: int = 500  # Max error message length
+    # Tool execution failure policy during automated tool calls in chat/chat_stream
+    # Options: 'inject_message' (default) | 'raise' | 'retry_once'
+    tool_failure_policy: str = 'inject_message'
     
     def __post_init__(self):
         """Configure logging and create directories after initialization"""
@@ -132,7 +142,8 @@ class RuntimeConfig:
             file_handler = RotatingFileHandler(
                 self.log_file_path,
                 maxBytes=self.log_file_max_bytes,
-                backupCount=self.log_file_backup_count
+                backupCount=self.log_file_backup_count,
+                encoding='utf-8'
             )
             file_handler.setLevel(log_level)
             file_formatter = logging.Formatter(
@@ -153,7 +164,8 @@ class RuntimeConfig:
             http_handler = RotatingFileHandler(
                 self.http_traffic_file_path,
                 maxBytes=self.log_file_max_bytes,
-                backupCount=self.log_file_backup_count
+                backupCount=self.log_file_backup_count,
+                encoding='utf-8'
             )
             http_formatter = logging.Formatter(
                 '%(asctime)s - %(levelname)s - %(message)s'
@@ -217,7 +229,7 @@ class RuntimeConfig:
         Example:
             >>> config = RuntimeConfig.from_yaml("config/runtime.yaml", timeout=120)
         """
-        from .exceptions import ConfigurationError
+        from exceptions import ConfigurationError
         
         yaml_path = Path(yaml_path)
         if not yaml_path.exists():

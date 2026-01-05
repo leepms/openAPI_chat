@@ -13,8 +13,8 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Callable, Optional, Union
 
-from ..schema import Tool, FunctionDefinition
-from . import fake_tool
+from schema import Tool, FunctionDefinition
+from tools import fake_tool
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +207,7 @@ def load_tools_for_agent(
         Number of tools successfully registered
     
     Example:
+        >>> # 如果作为包使用
         >>> from openai_chatapi import ChatAgent
         >>> from openai_chatapi.tools.tool_loader import load_tools_for_agent
         >>> 

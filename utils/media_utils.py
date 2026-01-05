@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Union
 import logging
 
-from ..schema import (
+from schema import (
     ChatMessage,
     MessageContent,
     MessageContentText,
@@ -15,7 +15,7 @@ from ..schema import (
     MessageContentVideoUrl,
     MessageVideoUrl,
 )
-from ..exceptions import MediaProcessingError
+from exceptions import MediaProcessingError
 
 logger = logging.getLogger(__name__)
 

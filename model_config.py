@@ -5,7 +5,7 @@ from typing import Optional, Union, List
 import yaml
 from pathlib import Path
 
-from .exceptions import ConfigurationError
+from exceptions import ConfigurationError
 
 
 @dataclass
@@ -21,6 +21,8 @@ class ModelConfig:
     api_base_url: str = "https://api.openai.com/v1"
     api_key: Optional[str] = None
     model: str = "gpt-4o"
+    # Optional request timeout (seconds)
+    timeout: Optional[float] = None
     
     # Sampling parameters
     temperature: float = 0.7

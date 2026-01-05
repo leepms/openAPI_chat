@@ -20,15 +20,16 @@ def test_imports():
     """Test 1: Import modules"""
     print("\n[Test 1] Testing imports...")
     try:
-        from openai_chatapi import ChatAgent, ChatConfig
-        from openai_chatapi.schema import (
+        from chat_agent import ChatAgent
+        from model_config import ChatConfig
+        from schema import (
             ChatMessage,
             ChatCompletionRequest,
             MessageContentText,
             MessageContentImageUrl,
             MessageImageUrl,
         )
-        from openai_chatapi.utils.media_utils import (
+        from utils.media_utils import (
             encode_image_to_base64,
             create_text_content,
             create_image_content,
@@ -47,7 +48,8 @@ def test_config():
     """Test 2: Configuration"""
     print("\n[Test 2] Testing configuration...")
     try:
-        from openai_chatapi import ChatConfig
+        from model_config import ChatConfig
+        from exceptions import ConfigurationError
         
         # Test default config
         config = ChatConfig()
@@ -77,7 +79,7 @@ def test_config():
             config = ChatConfig(temperature=3.0)  # Should fail
             print("✗ Temperature validation failed")
             return False
-        except ValueError:
+        except ConfigurationError:
             print("✓ Temperature validation works")
         
         return True
@@ -92,7 +94,7 @@ def test_schema():
     """Test 3: Schema objects"""
     print("\n[Test 3] Testing schema objects...")
     try:
-        from openai_chatapi.schema import (
+        from schema import (
             ChatMessage,
             ChatCompletionRequest,
             MessageContentText,
@@ -140,7 +142,7 @@ def test_utils():
     """Test 4: Utility functions"""
     print("\n[Test 4] Testing utility functions...")
     try:
-        from openai_chatapi.utils import (
+        from utils.media_utils import (
             create_text_content,
             create_user_message,
             create_system_message,
@@ -183,7 +185,7 @@ def test_image_encoding():
     """Test 5: Image encoding"""
     print("\n[Test 5] Testing image encoding...")
     try:
-        from openai_chatapi.utils.media_utils import encode_image_to_base64, create_image_content
+        from utils.media_utils import encode_image_to_base64, create_image_content
         import tempfile
         from PIL import Image
         
@@ -225,7 +227,8 @@ async def test_agent_initialization():
     """Test 6: Agent initialization"""
     print("\n[Test 6] Testing agent initialization...")
     try:
-        from openai_chatapi import ChatAgent, ChatConfig
+        from chat_agent import ChatAgent
+        from model_config import ChatConfig
         
         # Test with default config
         agent1 = ChatAgent()
@@ -262,7 +265,8 @@ async def test_agent_methods():
     """Test 7: Agent methods"""
     print("\n[Test 7] Testing agent methods...")
     try:
-        from openai_chatapi import ChatAgent, ChatConfig
+        from chat_agent import ChatAgent
+        from model_config import ChatConfig
         
         config = ChatConfig()
         async with ChatAgent(config) as agent:
@@ -273,7 +277,7 @@ async def test_agent_methods():
             print("✓ set_system_prompt works")
             
             # Test add_message
-            from openai_chatapi.media_utils import create_user_message
+            from utils.media_utils import create_user_message
             user_msg = create_user_message("Hello")
             agent.add_message(user_msg)
             assert len(agent.messages) == 2
@@ -302,8 +306,9 @@ async def test_request_building():
     """Test 8: Request building"""
     print("\n[Test 8] Testing request building...")
     try:
-        from openai_chatapi import ChatAgent, ChatConfig
-        from openai_chatapi.utils import create_user_message
+        from chat_agent import ChatAgent
+        from model_config import ChatConfig
+        from utils.media_utils import create_user_message
         
         config = ChatConfig(model="gpt-4", temperature=0.8)
         async with ChatAgent(config) as agent:
@@ -339,11 +344,82 @@ async def test_request_building():
         return False
 
 
+async def test_stream_tool_execution():
+    """Test streaming tool execution with chunked function arguments"""
+    print("\n[Test Stream Tool] Testing streamed tool execution...")
+    try:
+        from chat_agent import ChatAgent
+        from model_config import ChatConfig
+        from schema import (
+            ChatCompletionChunkChoice,
+            ChatCompletionChunkDelta,
+        )
+        from schema import Tool, FunctionDefinition
+
+        config = ChatConfig()
+
+        async def fake_send(request):
+            # Simulate two chunks: first contains partial arguments, second completes and sets finish_reason
+            # First chunk: delta with tool call partial
+            tc1 = {
+                "id": "t1",
+                "function": {"name": "echo_tool", "arguments": '{"x": 1,'}
+            }
+
+            choice1 = ChatCompletionChunkChoice(
+                index=0,
+                delta=ChatCompletionChunkDelta(content="Hello", tool_calls=[tc1]),
+                finish_reason=None
+            )
+
+            args2 = '"y": 2}'
+            tc2 = {
+                "id": "t1",
+                "function": {"name": "echo_tool", "arguments": args2}
+            }
+
+            choice2 = ChatCompletionChunkChoice(
+                index=0,
+                delta=ChatCompletionChunkDelta(content=" World", tool_calls=[tc2]),
+                finish_reason="function_call"
+            )
+
+            # Yield choices as the streaming function would
+            yield choice1
+            yield choice2
+
+        async with ChatAgent(config) as agent:
+            # Register a simple tool handler
+            def echo_tool(x=None, y=None):
+                return {"x": x, "y": y}
+
+            tool = Tool(function=FunctionDefinition(name="echo_tool", parameters={"type": "object", "properties": {"x": {}, "y": {}}}))
+            agent.register_tool(tool, echo_tool)
+
+            # Patch the agent's _send_stream_request to our fake
+            agent._send_stream_request = fake_send
+
+            collected = []
+            async for chunk in agent.chat_stream("test", auto_execute_tools=True):
+                collected.append(chunk)
+
+            # After stream, a tool message should be in history
+            tool_msgs = [m for m in agent.messages if m.role == 'tool']
+            assert len(tool_msgs) >= 1
+            print("✓ Streamed tool executed and result injected into history")
+            return True
+    except Exception as e:
+        print(f"✗ Stream tool test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def test_response_parsing():
     """Test 9: Response parsing"""
     print("\n[Test 9] Testing response parsing...")
     try:
-        from openai_chatapi.schema import ChatCompletionResponse, ChatCompletionChunk
+        from schema import ChatCompletionResponse, ChatCompletionChunk
         
         # Test ChatCompletionResponse parsing
         response_data = {
@@ -419,6 +495,7 @@ async def main():
     results.append(("Agent Initialization", await test_agent_initialization()))
     results.append(("Agent Methods", await test_agent_methods()))
     results.append(("Request Building", await test_request_building()))
+    results.append(("Stream Tool Execution", await test_stream_tool_execution()))
     results.append(("Response Parsing", test_response_parsing()))
     
     # Print summary
