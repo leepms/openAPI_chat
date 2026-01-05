@@ -33,7 +33,7 @@ if API_KEY is None:
 if API_BASE_URL is None:
     API_BASE_URL = os.getenv("OPENAI_API_BASE_URL")
 
-if API_KEY is None or API_BASE_URL is None:
+if API_KEY is None or API_BASE_URL is None or MODEL is None:
     try:
         cfg_path = Path(__file__).parent.parent / "config" / "default_model_config.yaml"
         if cfg_path.exists():
@@ -42,6 +42,10 @@ if API_KEY is None or API_BASE_URL is None:
                 API_KEY = cfg.api_key
             if API_BASE_URL is None:
                 API_BASE_URL = cfg.api_base_url
+            if MODEL == "qwen-plus":  # 如果是默认值，从配置加载
+                MODEL = cfg.model
+            if VISION_MODEL == "qwen-vl-plus":  # 如果是默认值，从配置加载
+                VISION_MODEL = cfg.model
     except Exception:
         pass
 
@@ -225,9 +229,9 @@ async def main():
     print("   - 可以保存到数据库、记录日志等")
     print()
     print("📚 更多示例:")
-    print("   - example_3_streaming.py - 流式输出")
-    print("   - example_5_tool_calling.py - 工具调用")
-    print("   - example_6_config_management.py - 配置管理")
+    print("   - example_2_streaming.py - 流式输出")
+    print("   - example_3_tool_calling.py - 工具调用")
+    print("   - example_4_config_management.py - 配置管理")
     print("=" * 70)
 
 

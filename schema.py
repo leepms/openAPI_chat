@@ -160,6 +160,11 @@ class ChatMessage:
                 ]
             else:
                 result["content"] = self.content
+        elif self.role == "assistant" and self.tool_calls:
+            # For assistant messages with tool_calls but no content,
+            # some strict APIs require content field to exist.
+            # Set it to empty string for compatibility.
+            result["content"] = ""
         
         if self.name:
             result["name"] = self.name

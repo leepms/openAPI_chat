@@ -2,9 +2,9 @@
 # Model parameters sent to the OpenAI-compatible API
 
 # API Connection
-api_base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-api_key: "-"  # Required: Set your API key
-model: "qwen3-32b"  # gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1-preview, o1-mini
+api_base_url: "http://192.168.123.19:8080/v1"
+api_key: "sh-no-need-key"
+model: null
 
 # Sampling
 temperature: 0.7  # 0.0-2.0, controls randomness

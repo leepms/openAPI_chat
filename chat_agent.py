@@ -410,34 +410,33 @@ class ChatAgent:
                     # Execute all tool calls
                     for tool_call in assistant_message.tool_calls:
                         # Execute each tool with failure policy handling
-                        for tool_call in assistant_message.tool_calls:
-                            try:
-                                result = await self._execute_tool_call(tool_call)
-                            except Exception as e:
-                                policy = getattr(self.runtime_config, 'tool_failure_policy', 'inject_message')
-                                if policy == 'raise':
-                                    raise
-                                elif policy == 'retry_once':
-                                    try:
-                                        result = await self._execute_tool_call(tool_call)
-                                    except Exception as e2:
-                                        # fallback to inject message
-                                        result = f"Tool execution failed: {e2}"
-                                else:
-                                    # inject_message (default)
-                                    result = f"Tool execution failed: {e}"
+                        try:
+                            result = await self._execute_tool_call(tool_call)
+                        except Exception as e:
+                            policy = getattr(self.runtime_config, 'tool_failure_policy', 'inject_message')
+                            if policy == 'raise':
+                                raise
+                            elif policy == 'retry_once':
+                                try:
+                                    result = await self._execute_tool_call(tool_call)
+                                except Exception as e2:
+                                    # fallback to inject message
+                                    result = f"Tool execution failed: {e2}"
+                            else:
+                                # inject_message (default)
+                                result = f"Tool execution failed: {e}"
 
-                            # Add tool result message
-                            tool_message = ChatMessage(
-                                role="tool",
-                                content=result,
-                                tool_call_id=tool_call.id
-                            )
+                        # Add tool result message
+                        tool_message = ChatMessage(
+                            role="tool",
+                            content=result,
+                            tool_call_id=tool_call.id
+                        )
 
-                            if add_to_history:
-                                self.add_message(tool_message)
-                            elif request_messages is not None:
-                                request_messages.append(tool_message)
+                        if add_to_history:
+                            self.add_message(tool_message)
+                        elif request_messages is not None:
+                            request_messages.append(tool_message)
                     
                     # Continue loop to get final response
                     continue
@@ -718,9 +717,11 @@ class ChatAgent:
         headers = self._get_headers()
         request_data = request.to_dict(exclude_none=True)
         # Some endpoints (e.g., qwen-compatible) require explicit control
-        # of 'enable_thinking' for non-streaming calls. Ensure it's disabled
-        # for non-streaming requests unless explicitly set.
-        if not request_data.get("stream", False) and "enable_thinking" not in request_data:
+        # of 'enable_thinking' for non-streaming calls. Only add this for
+        # DashScope API to avoid incompatibility with other providers.
+        if (not request_data.get("stream", False) 
+            and "enable_thinking" not in request_data
+            and "dashscope.aliyuncs.com" in self.model_config.api_base_url):
             request_data["enable_thinking"] = False
         
         # Log HTTP request if enabled
