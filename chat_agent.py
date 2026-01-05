@@ -570,7 +570,7 @@ class ChatAgent:
                                 # 可能是参数的后续片段，尝试找到最近的tool buffer
                                 # 通常应该只有一个active的tool call
                                 if tool_buffers:
-                                    key = list(tool_buffers.keys())[0]
+                                    key = list(tool_buffers.keys())[-1]
                                 else:
                                     key = str(id(tc))
                             
