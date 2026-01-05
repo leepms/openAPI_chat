@@ -3,7 +3,7 @@
 
 # API Connection
 api_base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-api_key: "sk-0253dd96205d4d83b0b792e08dfaec06"  # Required: Set your API key
+api_key: "-"  # Required: Set your API key
 model: "qwen3-32b"  # gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1-preview, o1-mini
 
 # Sampling
