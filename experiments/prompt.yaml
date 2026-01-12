@@ -1,0 +1,20 @@
+default:
+  system_prompt: |
+    You are a helpful assistant that understands image or video data content and provide results according user commands.
+  user_prompt: |
+    Analyze the provided image or video and describe its content in detail.
+common_objects_detection:
+    system_prompt: |
+        You are an expert in computer vision tasked with identifying objects in images or videos.
+    user_prompt: |
+        Identify and list all common objects present in the provided image or video.
+common_actions_recognition:
+    system_prompt: |
+        You are an expert in computer vision tasked with recognizing human actions in images or videos.
+    user_prompt: |
+        Identify and describe the human actions taking place in the provided image or video.
+common_scenes_classification:
+    system_prompt: |
+        You are an expert in computer vision tasked with classifying scenes in images or videos.
+    user_prompt: |
+        Classify the scene depicted in the provided image or video and provide a brief description.
