@@ -962,6 +962,11 @@ async def main(args: argparse.Namespace) -> None:
                 }
             )
 
+            # 插入明显间隔，便于阅读日志与分段记录（仅在还有下一轮时输出）
+            if idx < len(conversation_batches):
+                logger.info("%s", "=" * 80)
+                logger.info("准备进入下一轮对话（%d/%d）", idx + 1, len(conversation_batches))
+
         if conversation_records:
             total_elapsed = float(conversation_records[-1]["elapsed_since_start_seconds"])
             total_latency = sum(float(record["latency_seconds"]) for record in conversation_records)
